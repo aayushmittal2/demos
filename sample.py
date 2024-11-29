@@ -1,13 +1,12 @@
 import unittest
 from collateral.HandleGraphs import RunOneGraph
 from collateral.CollateralsDatas import CollateralsDatas
-from collateral.CurrencyCollection import CurrencyCollection
 
 
 class TestHandleGraphs(unittest.TestCase):
     def setUp(self):
         """Set up mock data and initialize necessary objects."""
-        # Sample JSON structure based on your provided keys and values
+        # Correct input data structure for the test
         self.sample_input_data = {
             "collaterals": {
                 "CASHWITHINSG_7000001_CAVN70000001": {
@@ -32,7 +31,7 @@ class TestHandleGraphs(unittest.TestCase):
                     "enhanceabilityFlag": True,
                     "realAssetFlag": True,
                     "isDerivativeFlag": False,
-                    "monoMultiFlag": True
+                    "monoMultiFlag": True,
                 }
             },
             "exposures": {
@@ -46,26 +45,24 @@ class TestHandleGraphs(unittest.TestCase):
                     "eligibleCollaterals": ["CASHWITHINSG_7000001_CAVN70000001"],
                 }
             },
-            "currencyCategories": [
-                {
-                    "category": "A",
+            "currencyCategories": {
+                "A": {
                     "stressFactor": 0.07,
-                    "currencies": ["CAD", "EUR"]
+                    "currencies": ["CAD", "EUR"],
                 },
-                {
-                    "category": "B",
+                "B": {
                     "stressFactor": 0.1,
-                    "currencies": ["AUD", "CNY"]
-                }
-            ],
+                    "currencies": ["AUD", "CNY"],
+                },
+            },
             "currencyExchangeRates": {
                 "AED": {"rate": 0.24842, "date": "2024-01-08"},
                 "USD": {"rate": 0.9124, "date": "2024-01-08"},
                 "EUR": {"rate": 1.0, "date": "2024-01-08"},
-            }
+            },
         }
 
-        # Initialize CollateralsDatas and RunOneGraph objects
+        # Initialize the objects
         self.collaterals_datas = CollateralsDatas(json_datas=self.sample_input_data)
         self.run_one_graph = RunOneGraph(
             self.collaterals_datas.graphs[0],
@@ -89,7 +86,7 @@ class TestHandleGraphs(unittest.TestCase):
         self.run_one_graph.run_solver(self.collaterals_datas.graphs[0], optimize_coll=True)
         self.run_one_graph.update_graph(self.collaterals_datas.graphs[0])
 
-        # Check that DB is updated for the collateral
+        # Verify updated DB values
         collateral = self.collaterals_datas.graphs[0]["collaterals"]["CASHWITHINSG_7000001_CAVN70000001"]
         self.assertGreater(collateral.db, 0)
 
@@ -116,14 +113,14 @@ class TestHandleGraphs(unittest.TestCase):
         self.assertEqual(prev_allocation["coveragePercentage"], 50)
 
     def test_create_direct_links(self):
-        """Test creating direct links when there is only one exposure."""
+        """Test creating direct links for single exposure graph."""
         single_exposure_graph = {
             "collaterals": {
                 "C2": {
                     "id": "C2",
                     "amount_eur": 3000000.0,
                     "currency": "USD",
-                    "eligibleExposures": ["E2"]
+                    "eligibleExposures": ["E2"],
                 }
             },
             "exposures": {
@@ -131,7 +128,7 @@ class TestHandleGraphs(unittest.TestCase):
                     "id": "E2",
                     "amount_eur": 1000000.0,
                     "currency": "USD",
-                    "eligibleCollaterals": ["C2"]
+                    "eligibleCollaterals": ["C2"],
                 }
             },
         }
