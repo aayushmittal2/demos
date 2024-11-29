@@ -7,47 +7,71 @@ from collateral.CurrencyCollection import CurrencyCollection
 class TestHandleGraphs(unittest.TestCase):
     def setUp(self):
         """Set up mock data and initialize necessary objects."""
-        # Sample input data mimicking the structure used in your actual program
-        self.sample_currency_data = {
-            "EUR": {"rate": 1.0},
-            "USD": {"rate": 1.1},
-        }
-
-        self.sample_collaterals = {
-            "C1": {
-                "amount_eur": 2000000.0,
-                "currency": "EUR",
-                "eligibleExposures": ["E1"],
-                "db": 0,
-                "assetST": 0.05,
-                "enhanceabilityFlag": True,
-                "enhanceabilityLevel": "high",
-                "amount": 2000000.0,
+        # Sample JSON structure based on your provided keys and values
+        self.sample_input_data = {
+            "collaterals": {
+                "CASHWITHINSG_7000001_CAVN70000001": {
+                    "id": "CASHWITHINSG_7000001_CAVN70000001",
+                    "eligibleExposures": [
+                        "PARENT_C00000010",
+                        "PARENT_C00000011",
+                        "C0000001",
+                        "C0000002",
+                        "C0000003"
+                    ],
+                    "assetType": "Deposit",
+                    "marketValue": 2500000,
+                    "currency": "EUR",
+                    "assetST": 0,
+                    "eligibiltyFlag": True,
+                    "assetIssuerType": "SampleText_Value",
+                    "fundFlag": False,
+                    "economicSector": "",
+                    "corelationFactor": 0.203,
+                    "enhanceabilityLevel": "medium",
+                    "enhanceabilityFlag": True,
+                    "realAssetFlag": True,
+                    "isDerivativeFlag": False,
+                    "monoMultiFlag": True
+                }
             },
-        }
-
-        self.sample_exposures = {
-            "E1": {
-                "amount_eur": 1500000.0,
-                "currency": "EUR",
-                "eligibleCollaterals": ["C1"],
-                "eng_value": 1500000.0,
-                "ct": 0,
+            "exposures": {
+                "C0000001": {
+                    "id": "C0000001",
+                    "parentID": "PARENT_C00000010",
+                    "exposureCurrency": "EUR",
+                    "exposureAmount": 4000000,
+                    "exposureType": "OVERDRAFT",
+                    "derivativeFlag": False,
+                    "eligibleCollaterals": ["CASHWITHINSG_7000001_CAVN70000001"],
+                }
             },
+            "currencyCategories": [
+                {
+                    "category": "A",
+                    "stressFactor": 0.07,
+                    "currencies": ["CAD", "EUR"]
+                },
+                {
+                    "category": "B",
+                    "stressFactor": 0.1,
+                    "currencies": ["AUD", "CNY"]
+                }
+            ],
+            "currencyExchangeRates": {
+                "AED": {"rate": 0.24842, "date": "2024-01-08"},
+                "USD": {"rate": 0.9124, "date": "2024-01-08"},
+                "EUR": {"rate": 1.0, "date": "2024-01-08"},
+            }
         }
 
-        self.sample_graph = {
-            "collaterals": self.sample_collaterals,
-            "exposures": self.sample_exposures,
-        }
-
-        # Initialize currency collection and dummy CollateralsDatas
-        self.currency_collection = CurrencyCollection(self.sample_currency_data)
-        self.collaterals_datas = CollateralsDatas(json_datas=self.sample_graph)
-
-        # Initialize RunOneGraph with mock data
+        # Initialize CollateralsDatas and RunOneGraph objects
+        self.collaterals_datas = CollateralsDatas(json_datas=self.sample_input_data)
         self.run_one_graph = RunOneGraph(
-            self.sample_graph, 1, self.collaterals_datas._ct_calc, 10
+            self.collaterals_datas.graphs[0],
+            num=1,
+            ct_calc=self.collaterals_datas._ct_calc,
+            nb_virtual_assets=self.collaterals_datas.nb_virtual_assets,
         )
 
     def test_run_one_graph(self):
@@ -57,34 +81,32 @@ class TestHandleGraphs(unittest.TestCase):
 
     def test_run_solver(self):
         """Test that the solver runs successfully and returns a valid object."""
-        solver = self.run_one_graph.run_solver(self.sample_graph, optimize_coll=False)
+        solver = self.run_one_graph.run_solver(self.collaterals_datas.graphs[0], optimize_coll=False)
         self.assertIsNotNone(solver)
 
     def test_update_graph(self):
         """Test that the graph updates DB and CT values after solver runs."""
-        self.run_one_graph.run_solver(self.sample_graph, optimize_coll=True)
-        self.run_one_graph.update_graph(self.sample_graph)
+        self.run_one_graph.run_solver(self.collaterals_datas.graphs[0], optimize_coll=True)
+        self.run_one_graph.update_graph(self.collaterals_datas.graphs[0])
 
         # Check that DB is updated for the collateral
-        collateral = self.sample_graph["collaterals"]["C1"]
-        self.assertGreater(collateral["db"], 0)
+        collateral = self.collaterals_datas.graphs[0]["collaterals"]["CASHWITHINSG_7000001_CAVN70000001"]
+        self.assertGreater(collateral.db, 0)
 
     def test_check_link_zero(self):
         """Test that links with zero allocation are removed."""
-        solver = self.run_one_graph.run_solver(self.sample_graph, optimize_coll=False)
+        solver = self.run_one_graph.run_solver(self.collaterals_datas.graphs[0], optimize_coll=False)
         updated_graph, is_zero_link = self.run_one_graph.check_link_zero(
-            self.sample_graph, solver
+            self.collaterals_datas.graphs[0], solver
         )
         self.assertFalse(is_zero_link)
 
     def test_add_allocation_graph(self):
         """Test adding an allocation to the graph."""
-        link = {"Exposure_id": "E1", "ct_eligible": True}
+        link = {"Exposure_id": "C0000001", "ct_eligible": True}
         cur_allocation_graph = {"allocations": []}
-        cur_allocation = self.run_one_graph.add_allocation(
-            cur_allocation_graph, link
-        )
-        self.assertIn("E1", [a["Exposure_id"] for a in cur_allocation["allocations"]])
+        cur_allocation = self.run_one_graph.add_allocation(cur_allocation_graph, link)
+        self.assertIn("C0000001", [a["Exposure_id"] for a in cur_allocation["allocations"]])
 
     def test_update_coverpercentage(self):
         """Test updating the coverage percentage."""
@@ -97,15 +119,23 @@ class TestHandleGraphs(unittest.TestCase):
         """Test creating direct links when there is only one exposure."""
         single_exposure_graph = {
             "collaterals": {
-                "C2": {"amount_eur": 3000000.0, "currency": "USD"},
+                "C2": {
+                    "id": "C2",
+                    "amount_eur": 3000000.0,
+                    "currency": "USD",
+                    "eligibleExposures": ["E2"]
+                }
             },
             "exposures": {
-                "E2": {"amount_eur": 1000000.0, "currency": "USD"},
+                "E2": {
+                    "id": "E2",
+                    "amount_eur": 1000000.0,
+                    "currency": "USD",
+                    "eligibleCollaterals": ["C2"]
+                }
             },
         }
-        direct_links = self.run_one_graph._create_direct_links(
-            single_exposure_graph, {}, "sub_graph_1"
-        )
+        direct_links = self.run_one_graph._create_direct_links(single_exposure_graph, {}, "sub_graph_1")
         self.assertIn(("C2", "E2"), direct_links.keys())
         self.assertEqual(
             direct_links[("C2", "E2")]["value"], 3000000.0 * (1 - 0)  # Adjusted value
@@ -113,11 +143,11 @@ class TestHandleGraphs(unittest.TestCase):
 
     def test_propagate_db_to_coll(self):
         """Test that DB values are propagated to all collaterals."""
-        self.run_one_graph.run_solver(self.sample_graph, optimize_coll=True)
-        self.run_one_graph.update_graph(self.sample_graph)
+        self.run_one_graph.run_solver(self.collaterals_datas.graphs[0], optimize_coll=True)
+        self.run_one_graph.update_graph(self.collaterals_datas.graphs[0])
 
-        for c_id, collateral in self.sample_graph["collaterals"].items():
-            self.assertGreaterEqual(collateral["db"], 0)
+        for c_id, collateral in self.collaterals_datas.graphs[0]["collaterals"].items():
+            self.assertGreaterEqual(collateral.db, 0)
 
 
 if __name__ == "__main__":
