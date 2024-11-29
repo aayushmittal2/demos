@@ -15,7 +15,7 @@ class TestHandleGraphs(unittest.TestCase):
                         "PARENT_C00000011",
                         "C0000001",
                         "C0000002",
-                        "C0000003"
+                        "C0000003",
                     ],
                     "assetType": "Deposit",
                     "marketValue": 2500000,
@@ -58,7 +58,7 @@ class TestHandleGraphs(unittest.TestCase):
         # Initialize CollateralsDatas and RunOneGraph
         self.collaterals_datas = CollateralsDatas(json_datas=self.sample_input_data)
         self.run_one_graph = RunOneGraph(
-            graph=self.collaterals_datas._graphs[0],
+            graph=list(self.collaterals_datas._graphs.values())[0],
             num=1,
             ct_calc=self.collaterals_datas._ct_calc,
             nb_virtual_assets=self.collaterals_datas.nb_virtual_assets,
@@ -72,16 +72,16 @@ class TestHandleGraphs(unittest.TestCase):
     def test_run_solver(self):
         """Test the solver execution."""
         solver = self.run_one_graph.run_solver(
-            self.collaterals_datas._graphs[0], optimize_coll=False
+            list(self.collaterals_datas._graphs.values())[0], optimize_coll=False
         )
         self.assertIsNotNone(solver)
 
     def test_update_graph(self):
         """Test the graph update functionality."""
-        self.run_one_graph.run_solver(self.collaterals_datas._graphs[0], optimize_coll=True)
-        self.run_one_graph.update_graph(self.collaterals_datas._graphs[0])
+        self.run_one_graph.run_solver(list(self.collaterals_datas._graphs.values())[0], optimize_coll=True)
+        self.run_one_graph.update_graph(list(self.collaterals_datas._graphs.values())[0])
 
-        collateral = self.collaterals_datas._graphs[0]["collaterals"][
+        collateral = list(self.collaterals_datas._graphs.values())[0]["collaterals"][
             "CASHWITHINSG_7000001_CAVN70000001"
         ]
         self.assertGreater(collateral.db, 0)
@@ -89,10 +89,10 @@ class TestHandleGraphs(unittest.TestCase):
     def test_check_link_zero(self):
         """Test removal of zero-value links."""
         solver = self.run_one_graph.run_solver(
-            self.collaterals_datas._graphs[0], optimize_coll=False
+            list(self.collaterals_datas._graphs.values())[0], optimize_coll=False
         )
         updated_graph, is_zero_link = self.run_one_graph.check_link_zero(
-            self.collaterals_datas._graphs[0], solver
+            list(self.collaterals_datas._graphs.values())[0], solver
         )
         self.assertFalse(is_zero_link)
 
@@ -135,10 +135,10 @@ class TestHandleGraphs(unittest.TestCase):
 
     def test_propagate_db_to_coll(self):
         """Test DB propagation to collaterals."""
-        self.run_one_graph.run_solver(self.collaterals_datas._graphs[0], optimize_coll=True)
-        self.run_one_graph.update_graph(self.collaterals_datas._graphs[0])
+        self.run_one_graph.run_solver(list(self.collaterals_datas._graphs.values())[0], optimize_coll=True)
+        self.run_one_graph.update_graph(list(self.collaterals_datas._graphs.values())[0])
 
-        collateral = self.collaterals_datas._graphs[0]["collaterals"][
+        collateral = list(self.collaterals_datas._graphs.values())[0]["collaterals"][
             "CASHWITHINSG_7000001_CAVN70000001"
         ]
         self.assertGreater(collateral.db, 0)
