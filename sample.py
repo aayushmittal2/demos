@@ -44,15 +44,15 @@ class TestHandleGraphs(unittest.TestCase):
                     "eligibleCollaterals": ["CASHWITHINSG_7000001_CAVN70000001"],
                 }
             },
-            "currencyCategories": [
-                {"category": "A", "stressFactor": 0.07, "currencies": ["CAD", "EUR"]},
-                {"category": "B", "stressFactor": 0.1, "currencies": ["AUD", "CNY"]},
-            ],
-            "currencyExchangeRates": [
-                {"currency": "AED", "rate": 0.24842, "date": "2024-01-08"},
-                {"currency": "USD", "rate": 0.9124, "date": "2024-01-08"},
-                {"currency": "EUR", "rate": 1.0, "date": "2024-01-08"},
-            ],
+            "currencyCategories": {
+                "A": {"category": "A", "stressFactor": 0.07, "currencies": ["CAD", "EUR"]},
+                "B": {"category": "B", "stressFactor": 0.1, "currencies": ["AUD", "CNY"]},
+            },
+            "currencyExchangeRates": {
+                "AED": {"currency": "AED", "rate": 0.24842, "date": "2024-01-08"},
+                "USD": {"currency": "USD", "rate": 0.9124, "date": "2024-01-08"},
+                "EUR": {"currency": "EUR", "rate": 1.0, "date": "2024-01-08"},
+            },
         }
 
         # Initialize CollateralsDatas and RunOneGraph
